@@ -18,4 +18,4 @@ place_tuple(X, Y) :-
     I2 is_index_of Y in [3,4,5,0,1,2],
     I1 = I2.
 
-free_places(I, List) :- setof(X, insect_linked_relation(Y, _, X), P).
+free_places(I, List) :- setof(X, insect_linked_relation(I, _, X), List).
