@@ -1,0 +1,18 @@
+[[package]]
+name = "pyswip"
+version = "0.2.2"
+description = "PySWIP enables querying SWI-Prolog in your Python programs."
+category = "main"
+optional = false
+python-versions = "*"
+
+[metadata]
+lock-version = "1.1"
+python-versions = "^3.9"
+content-hash = "a6128cd06bb07e3e249621184b1697b1312249b9727d9988d082639f1c9217b2"
+
+[metadata.files]
+pyswip = [
+    {file = "pyswip-0.2.2.tar.gz", hash = "sha256:7633c206a2fa6f6fae5a1d76b7e2b2ad09aa14413f95e4fc96c91856a5fa6bc2"},
+    {file = "pyswip-0.2.2.win32.exe", hash = "sha256:7b85b579787d5c70eac42206157f746fe98e1aa092fd96f1f81e3db2803d1c00"},
+]
