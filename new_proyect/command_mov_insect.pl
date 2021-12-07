@@ -5,7 +5,7 @@
 :- use_module(database).
 
 mov_fail_condition(Insect, Index, Player, X, Y, Result) :-
-    list_all_insects List of Player, not(member((queen_bee, 1), List))
+    list_all_insects List of Player, not(member((queen_bee, Player, 1), List))
     Result is 'La reina ni ha sido colocad'.
 
 mov_insect (Insect, Index) by Player from (AX, AY) to (NX, NY) wih Result :- 

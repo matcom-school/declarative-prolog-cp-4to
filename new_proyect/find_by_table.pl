@@ -14,19 +14,19 @@ list_all_insects List :-
     findall((Insect, X, Y), insect_play(Insect, X, Y), List).
 
 list_all_insects List of Player :- 
-    findall((Insect, Index), insect_play((Insect, Player, Index), _, _), List).
+    findall((Insect, Player, Index), insect_play((Insect, Player, Index), _, _), List).
 
 
 adj_list(X, Y, List) :- 
     X_1 is X - 1, X1 is X + 1,
     Y_1 is Y - 1, Y1 is Y + 1,
     findall(Card, (
-        insect_play( Card, X_1, Y_1); 
+        insect_play( Card, X, Y_1); 
         insect_play( Card, X_1, Y);
-        insect_play( Card, X, Y_1);
-        insect_play( Card, X, Y1);
-        insect_play( Card, X1, Y_1);
-        insect_play( Card, X1, Y)), List).
+        insect_play( Card, X_1, Y1);
+        insect_play( Card, X,  Y1);
+        insect_play( Card, X1,   Y);
+        insect_play( Card, X1, Y_1)), List).
 
 path_compute((TopX, TopY), (TopX, TopY), _, []). 
 path_compute((OriginX, OriginY), (TopX, TopY), (FactorX, FactorY), Path):-

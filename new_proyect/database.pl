@@ -5,10 +5,13 @@
     cards/1,
     insect_play/3,  
     save/3,
-    remove/3
+    remove/3,
+    is_turn_of/1,
+    next_player/1
 ]).
 
 :- dynamic insect_play/3.
+:- dynamic player_turn/1.
 
 save(Insect, X, Y) :- asserta(insect_play(Insect, X, Y )).
 
@@ -35,3 +38,10 @@ cards List of_player X :- X is_player,
         (beetle, X, 1), (beetle, X, 2),
         (spider, X, 1), (spider, X, 2)
     ].
+
+
+is_turn_of(white) :- not(player_turn(_)), !, asserta(player_turn(white)). 
+is_turn_of(Player) :- player_turn(Player).
+
+next_player(Player) :- Player = white, !, retract(player_turn(white)), asserta(player_turn(black)). 
+next_player(Player) :- Player = black, !, retract(player_turn(black)), asserta(player_turn(white)). 

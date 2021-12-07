@@ -19,7 +19,7 @@ set_fail_condition(_, _, _, X, Y, Result) :-
 
 set_fail_condition(Insect, Index, Player, _, _, Result) :- 
     list_all_insects List of Player,
-    member((Insect, Index), List), !,
+    member((Insect, Player ,Index), List), !,
     Result = 'Insecto no Disponible'.
 
 set_fail_condition( _, _, _, X, Y, Result) :- 
