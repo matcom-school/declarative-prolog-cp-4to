@@ -6,8 +6,11 @@
     contain/2,
     diff/3,
     concat/3,
-    get_circular_value/2
+    get_circular_value/2,
+    is_connected_component/1
 ]).
+
+:- use_module(find_by_table).
 
 0 is_index_of X in [X|_].
 I is_index_of X in [_|R] :- I1 is_index_of X in R, I is I1 + 1.
@@ -36,3 +39,20 @@ diff([], L, L).
 diff([X|RList], List, ListResult) :- remove(X, List, RemoveList), diff(RList, RemoveList, ListResult).
 
 get_circular_value(Index, Value) :- TrueIndex is Index mod 6, TrueIndex is_index_of Value in [0,1,2,3,4,5]. 
+
+
+is_connected_component([X|List]) :-
+    aux_connected_component(List, [X]).
+
+aux_connected_component(List, []) :- length(List, Len), Len = 0.
+aux_connected_component(List, [n(SInsect, SPlayer, SIndex, X, Y)| Queen]) :-
+    findall(n(Insect, Player, Index, AX, AY), (
+        member(n(Insect, Player, Index, AX, AY), List), 
+        adj_post(X, Y, AX, AY), !,
+        not(member(n(Insect, Player, Index, AX, AY), Queen)) 
+    ), ListPushedToQueue),
+    append(Queen, ListPushedToQueue, NewQueue),
+    diff([n(SInsect, SPlayer, SIndex, X, Y)], List, NewList),
+    aux_connected_component(NewList, NewQueue).
+
+

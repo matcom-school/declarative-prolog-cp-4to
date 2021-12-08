@@ -4,6 +4,7 @@
     list_all_insects/1,
     of/2,
     adj_list/3,
+    adj_post/4,
     lineal_position/3
 ]).
 
@@ -16,6 +17,15 @@ list_all_insects List :-
 list_all_insects List of Player :- 
     findall((Insect, Player, Index), insect_play((Insect, Player, Index), _, _), List).
 
+adj_post(X, Y, X0, Y0) :- 
+    X_1 is X - 1, X1 is X + 1,
+    Y_1 is Y - 1, Y1 is Y + 1,
+    ( ( X = X0, Y_1 = Y0); 
+      ( X_1 = X0, Y = Y0); 
+      ( X_1 = X0, Y1 = Y0); 
+      ( X = X0, Y1 = Y0); 
+      ( X1 = X0, Y = Y0); 
+      ( X1 = X0, Y_1 = Y0)).
 
 adj_list(X, Y, List) :- 
     X_1 is X - 1, X1 is X + 1,

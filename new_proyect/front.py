@@ -27,6 +27,7 @@ def print_table(table, xi, yi, x_deep, y_deep):
     y.append( int(item.args[1].args[1]) )
     _dict[(x[-1], y[-1])] = (str(item.args[0].args[0]) , str(item.args[0].args[1].args[0]))
 
+  print(_dict)
   def index(e, j, s = 0):
     result = [' ', ' ', ':', ' ', ' ']
     i = str( xi -1 + 2*j + s)
@@ -117,6 +118,30 @@ def set_action(option):
   print('Set result:', result[0]['Result'])
   list(prolog.query('turn_finish()'))
 
+def mov_action(option): 
+  if option != 2: return 
+  print('Write your new mov. (Example: mov insect [1] to 2:3)')
+  option_list = list(prolog.query('insect_available_to_mov(List)'))[0]['List']
+
+  insect = []
+  for i, t in enumerate(option_list):
+    t = insect_tuple(t)
+    insect.append(t)
+    print(i, '- ', t[0], '-', t[1])
+
+  action = input()
+  select = re.search(r'\[\s*\d+\s*\]', action)
+  place = re.search(r'(-\d+\s*|\d+\s*):(\s*-\d+|\s*\d+)', action)
+  if select is None or place is None: return  mov_action(2)
+
+  index = int(select.group()[1:-1])
+  pos = place.group().split(':')
+  result =list(prolog.query('mov_insect((' + str(insect[index][0]) + 
+               ',' + str(insect[index][1]) + 
+               '),' + str(int(pos[0])) +
+               ',' + str(int(pos[1])) + ', Result)' ))
+  print('Set result:', result[0]['Result'])
+  list(prolog.query('turn_finish()'))
 
 
 xi, yi, x_deep, y_deep = 0, 0, 3, 3

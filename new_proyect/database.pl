@@ -3,7 +3,8 @@
     op(688, xfx, [of_player]),
     op(700, fx, [cards]),
     cards/1,
-    insect_play/3,  
+    insect_play/3, 
+    dont_mov/2, 
     save/3,
     remove/3,
     is_turn_of/1,
@@ -12,11 +13,12 @@
 
 :- dynamic insect_play/3.
 :- dynamic player_turn/1.
+:- dynamic dont_mov/2.
 
 save(Insect, X, Y) :- asserta(insect_play(Insect, X, Y )).
 
 remove(Insect, X, Y) :- 
-    not(insect_play(Insect, X, Y)), !, 
+    insect_play(Insect, X, Y), !, 
     retract(insect_play(Insect, X, Y)).
 
 X is_insect :- X = queen_bee.

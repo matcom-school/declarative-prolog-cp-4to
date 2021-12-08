@@ -6,7 +6,6 @@
 
 :- use_module(find_by_table).
 :- use_module(database).
-% :- use_module(operators).
 :- use_module(helpers).
 :- use_module(list_helpers).
 

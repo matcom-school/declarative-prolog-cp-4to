@@ -1,5 +1,5 @@
 :- module(playOperatos, [
-    op(700, yfx, [by, of_index, with]),
+    op(700, yfx, [by, of_index, in, with]),
     get_player/2,
     is_from/2
 ]).
