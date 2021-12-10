@@ -1,84 +1,119 @@
 :- module(movInsect, [
     op(700, fx, [mov_insect]),
     op(700, yfx, [from, to, by, with]),
-    mov/3
+    mov/3,
+    mov_fail_condition/4,
+    retract_mov_insect_save/3,
+    mov_insect_save/3
 ]).
 
-% :- use_module(operators).
+:- discontiguous movInsect:mov/3.
+
 :- use_module(list_helpers).
 :- use_module(find_by_table).
 :- use_module(database).
 :- use_module(helpers).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% General Mov
-mov_insect_save( (Insect, Player, Index), (AX, AY), (NX, NY), Result) :- 
+mov_insect_save( (Insect, Player, Index), (AX, AY), (NX, NY)) :- 
     save((Insect, Player, Index), NX, NY),
-    remove((Insect, Player, Index), AX, AY), 
-    finish_play(Result).
+    remove((Insect, Player, Index), AX, AY),
+    unblocking(Insect, Player, Index, AX, AY),
+    blocking(Insect, Player, Index, NX, NY).
 
-mov_fail_condition(_, _, Player, _, _, Result) :- 
+retract_mov_insect_save((Insect, Player, Index), (AX, AY), (NX, NY)) :- 
+    save((Insect, Player, Index), AX, AY),
+    remove((Insect, Player, Index), NX, NY),
+    unblocking(Insect, Player, Index, NX, NY),
+    blocking(Insect, Player, Index, AX, AY).
+
+unblocking(Insect, _, _, _, _, _, _) :- Insect \= beetle, !.
+unblocking(Insect, Player, Index, _, _) :- Insect = beetle, not(dont_mov(_, (beetle, Player, Index))), !.
+unblocking(Insect, Player, Index, _, _) :- 
+    Insect = beetle, 
+    dont_mov((BInsect, BPlayer,BIndex), (beetle, Player, Index)), !,
+    retract(dont_mov((BInsect, BPlayer,BIndex), (beetle, Player, Index))).
+
+blocking(Insect, _, _, _, _) :- Insect \= beetle, !.
+blocking(Insect, _, _, X, Y) :- Insect \= beetle, not(insect_play(_, X, Y)), !.
+blocking(Insect, Player, Index, X, Y) :- 
+    Insect = beetle, 
+    insect_play((BInsect, BPlayer, BIndex), X, Y), !,
+    assert(dont_mov((BInsect, BPlayer, BIndex), (beetle, Player, Index))).
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Fail Condition Mov
+mov_fail_condition((_, _, Player), _, _, Result) :-  
     list_all_insects List of Player,
     not(member((queen_bee, Player, 1), List)),
     Result = 'La reina ni ha sido colocad'.
 
-mov_fail_condition(Insect, Index, Player, _, _, Result) :- 
-    not(insect_play((Insect, Player, Index), _, _)), !,
-    Result = 'Error de Localizacion'.
+mov_fail_condition((Insect, Index, Player), _, _, Result) :- 
+    dont_mov((Insect, Player, Index), _), !,
+    Result = 'La Pieza esta Bloqueada'.
 
-mov_fail_condition(Insect, Index, Player, X, Y, Result) :- 
-    insect_play((Insect, Player, Index), AX, AY), !,
+mov_fail_condition((Insect, Index, Player), (ActualX, ActualY), (X, Y), Result) :- 
     findall(n(FakerInsect, FakerPlayer, FakerIndex, FakerX, FakerY), 
             insect_play((FakerInsect, FakerPlayer, FakerIndex), FakerX, FakerY), 
             TempList),
-    diff([n(Insect, Player, Index, AX, AY)], [n(Insect, Player, Index, X, Y)|TempList], FakerList),
+    diff([n(Insect, Player, Index, ActualX, ActualY)], [n(Insect, Player, Index, X, Y)|TempList], FakerList),
     not(is_connected_component(FakerList)), !, Result = 'Mov Desconecta el Hive'. 
 
-
-mov((Insect, Player, Index), (X, Y), Result) :- 
-    mov_fail_condition(Insect, Index, Player, X, Y, Result). 
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Queen Mov
-mov((queen_bee, Player, 1), (X, Y), Result) :- 
-    not(mov_fail_condition(queen_bee, 1, Player, X, Y, Result)), !,
-    mov_queen(Player, X, Y, Result). 
-
-queen_fail_condition(_, X, Y, Result) :- 
+mov_fail_condition((Insect, _, _), _, (X, Y), Result) :- 
+    Insect \= beetle, !,
     insect_play(_, X, Y), !, Result = 'Posicion Ocupada'. 
 
-queen_fail_condition(Player, X, Y, Result) :- 
-    insect_play((queen_bee, Player, 1), ActualX, ActualY), 
+mov_fail_condition((Insect, _, _), (ActualX, ActualY), (X, Y), Result) :- 
+    (Insect = queen_bee; Insect = beetle; Insect = pill_bug), !, 
     not(adj_post(ActualX, ActualY, X, Y)), !, Result = 'Posicion No Adyacente'.
 
-mov_queen(Player, X, Y, Result) :- queen_fail_condition(Player, X, Y, Result).
-mov_queen(Player, X, Y, Result) :- not(queen_fail_condition(Player, X, Y, Result)), 
-    insect_play((queen_bee, Player, 1), ActualX, ActualY), 
-    mov_insect_save((queen_bee, Player, 1), (ActualX, ActualY), (X, Y), Result).
-   
+mov_fail_condition((grasshopper, _, _), (ActualX, ActualY), (X, Y), Result) :- 
+    not(lineal_position((ActualX, ActualY), (X, Y), _)), !, Result = 'El Camino no es Lineal'.
+
+mov_fail_condition((grasshopper, _, _), (ActualX, ActualY), (X, Y), Result) :- 
+    lineal_position((ActualX, ActualY), (X, Y), Path), 
+    findall(Card, (insect_play(Card, XP, YP), member((XP,YP), Path)), CardInLinea),
+    length(Path, Length1), length(CardInLinea, Length2), Length1 \= Length2, !, Result = 'El Camino Tiene Huecos Vacios'.
+
+mov_fail_condition((spider, _, _), (ActualX, ActualY), (X, Y), Result) :- 
+    not(bfs((X, Y), (ActualX, ActualY), _, 4)), !,
+    Result = 'La posicion no se encontro disponible tres pasos mas alante'.  
+
+mov_fail_condition((art, _, _), (ActualX, ActualY), (X, Y), Result) :- 
+    not(bfs((X, Y), (ActualX, ActualY), _, -1)), !,
+    Result = 'No se encontro camino posible'.  
+
+mov_fail_condition((ladybug, _, _), (ActualX, ActualY), (X, Y), Result) :- 
+    not(hive_bfs((X, Y), (ActualX, ActualY), _, 4)), !,
+    Result = 'No hay camino tres pasos mas alante'.
+
+mov_fail_condition((mosquito, Index, Player), (ActualX, ActualY), (X, Y), Result) :- 
+    insect_play((mosquito, Player, Index), ActualX, ActualY),
+    findall(Insect, (insect_play((Insect, _, _), AdjX, AdjY), adj_post(X, Y, AdjX, AdjY)), InsectList),
+    not(member(InsectInList, InsectList), InsectInList \= mosquito), !,
+    Result = 'El mosquito solo tiene al lado a otro mosquito'. 
+
+mov_fail_condition((mosquito, _, Player), (ActualX, ActualY), (X, Y), Result) :- 
+    findall(Insect, (insect_play((Insect, _, _), AdjX, AdjY), adj_post(X, Y, AdjX, AdjY)), InsectList),
+    not(
+        member(InsectInList, InsectList), 
+        InsectInList \= mosquito, 
+        not(mov_fail_condition((InsectInList, _, Player), (ActualX, ActualY), (X, Y), _))
+    ), !, Result = 'Ninguno de los adyacnetes puede realizar ese movimiento'. 
 
 
-% mov_insect (beetle, Index) by Player of_index (X, Y) with Result :- 
-%     not(mov_fail_condition(beetle, Index, Player, X, Y, Result)), !, 
-%     insect_play((beetle, Player, Index), ActualX, ActualY),
-%     adj_post((ActualX, ActualY), X, Y), !,
-%     mov_insect (beetle, Index) by Player from (ActualX, ActualY) to (X, Y) with Result.
 
-% mov_insect (grasshopper, Index) by Player of_index (X, Y) with Result :-
-%     not(mov_fail_condition(grasshopper, Index, Player, X, Y, Result)), !, 
-%     insect_play((grasshopper, Player, Index), ActualX, ActualY),
-%     lineal_position((ActualX, ActualY), (X, Y), Path), !,
-%     findall(Card, (insect_play(Card, XP, YP), member((XP,YP), Path)), CardInLinea),
-%     length(Path, Length1), length(CardInLinea, Length2), Length1 = Length2, !,
-%     mov_insect (beetle, Index) by Player from (ActualX, ActualY) to (X, Y) with Result.
+mov((Insect, Player, Index), _, Result) :- 
+    not(insect_play((Insect, Player, Index), _, _)), !,
+    Result = 'Error de Localizacion'.
 
-% mov_insect (spider, Index) by Player of_index (X, Y) with Result :- 
-%     not(mov_fail_condition(spider, Index, Player, X, Y, Result)), !,
-%     insect_play((spider, Player, Index), ActualX, ActualY),
-%     bfs((X, Y), (ActualX, ActualY), _, 4), !,
-%     mov_insect (spider, Index) by Player from (ActualX, ActualY) to (X, Y) with Result.
+mov((Insect, Player, Index), (X, Y), Result) :- 
+    insect_play((Insect, Player, Index), ActualX, ActualY), !,
+    mov_fail_condition((Insect, Index, Player), (ActualX, ActualY), (X, Y), Result). 
 
-% mov_insect (art, Index) by Player of_index (X, Y) with Result :- 
-%     not(mov_fail_condition(art, Index, Player, X, Y, Result)), !,
-%     insect_play((art, Player, Index), ActualX, ActualY),
-%     bfs((X, Y), (ActualX, ActualY), _, -1), !,
-%     mov_insect (art, Index) by Player from (ActualX, ActualY) to (X, Y) with Result.
+mov((Insect, Player, Index), (X, Y), Result) :-
+    insect_play((Insect, Player, Index), ActualX, ActualY), !,
+    not(mov_fail_condition((Insect, Index, Player), (ActualX, ActualY), (X, Y), Result)), !, 
+    mov_insect_save((Insect, Player, Index), (ActualX, ActualY), (X, Y)), 
+    finish_play(Result).
+
