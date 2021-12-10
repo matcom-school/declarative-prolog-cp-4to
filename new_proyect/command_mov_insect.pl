@@ -7,7 +7,7 @@
     mov_insect_save/3
 ]).
 
-:- discontiguous movInsect:mov/3.
+% :- discontiguous movInsect:mov/3.
 
 :- use_module(list_helpers).
 :- use_module(find_by_table).
@@ -43,63 +43,75 @@ blocking(Insect, Player, Index, X, Y) :-
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Fail Condition Mov
-mov_fail_condition((_, _, Player), _, _, Result) :-  
+mov_fail_condition((Insect, Index, Player), (AX, AY), (X, Y), Result) :- 
+    queen_condition((Insect, Index, Player), (AX, AY), (X, Y), Result);
+    bloking_condition((Insect, Index, Player), (AX, AY), (X, Y), Result);
+    bussy_condition((Insect, Index, Player), (AX, AY), (X, Y), Result);
+    connected_condition((Insect, Index, Player), (AX, AY), (X, Y), Result);
+    grasshopper_lineal_condition((Insect, Index, Player), (AX, AY), (X, Y), Result);
+    grasshopper_void_space_condition((Insect, Index, Player), (AX, AY), (X, Y), Result);
+    spider_condition((Insect, Index, Player), (AX, AY), (X, Y), Result);
+    ladybug_condition((Insect, Index, Player), (AX, AY), (X, Y), Result);
+    mosquito_stoper_condition((Insect, Index, Player), (AX, AY), (X, Y), Result);
+    mosquito_condition((Insect, Index, Player), (AX, AY), (X, Y), Result), !.
+
+queen_condition((_, _, Player), _, _, Result) :-  
     list_all_insects List of Player,
     not(member((queen_bee, Player, 1), List)),
     Result = 'La reina ni ha sido colocad'.
 
-mov_fail_condition((Insect, Index, Player), _, _, Result) :- 
+bloking_condition((Insect, Index, Player), _, _, Result) :- 
     dont_mov((Insect, Player, Index), _), !,
     Result = 'La Pieza esta Bloqueada'.
 
-mov_fail_condition((Insect, Index, Player), (ActualX, ActualY), (X, Y), Result) :- 
+connected_condition((Insect, Index, Player), (ActualX, ActualY), (X, Y), Result) :- 
     findall(n(FakerInsect, FakerPlayer, FakerIndex, FakerX, FakerY), 
             insect_play((FakerInsect, FakerPlayer, FakerIndex), FakerX, FakerY), 
             TempList),
     diff([n(Insect, Player, Index, ActualX, ActualY)], [n(Insect, Player, Index, X, Y)|TempList], FakerList),
     not(is_connected_component(FakerList)), !, Result = 'Mov Desconecta el Hive'. 
 
-mov_fail_condition((Insect, _, _), _, (X, Y), Result) :- 
+bussy_condition((Insect, _, _), _, (X, Y), Result) :- 
     Insect \= beetle, !,
     insect_play(_, X, Y), !, Result = 'Posicion Ocupada'. 
 
-mov_fail_condition((Insect, _, _), (ActualX, ActualY), (X, Y), Result) :- 
+adj_condition((Insect, _, _), (ActualX, ActualY), (X, Y), Result) :- 
     (Insect = queen_bee; Insect = beetle; Insect = pill_bug), !, 
     not(adj_post(ActualX, ActualY, X, Y)), !, Result = 'Posicion No Adyacente'.
 
-mov_fail_condition((grasshopper, _, _), (ActualX, ActualY), (X, Y), Result) :- 
+grasshopper_lineal_condition((grasshopper, _, _), (ActualX, ActualY), (X, Y), Result) :- 
     not(lineal_position((ActualX, ActualY), (X, Y), _)), !, Result = 'El Camino no es Lineal'.
 
-mov_fail_condition((grasshopper, _, _), (ActualX, ActualY), (X, Y), Result) :- 
+grasshopper_void_space_condition((grasshopper, _, _), (ActualX, ActualY), (X, Y), Result) :- 
     lineal_position((ActualX, ActualY), (X, Y), Path), 
     findall(Card, (insect_play(Card, XP, YP), member((XP,YP), Path)), CardInLinea),
     length(Path, Length1), length(CardInLinea, Length2), Length1 \= Length2, !, Result = 'El Camino Tiene Huecos Vacios'.
 
-mov_fail_condition((spider, _, _), (ActualX, ActualY), (X, Y), Result) :- 
+spider_condition((spider, _, _), (ActualX, ActualY), (X, Y), Result) :- 
     not(bfs((X, Y), (ActualX, ActualY), _, 4)), !,
     Result = 'La posicion no se encontro disponible tres pasos mas alante'.  
 
-mov_fail_condition((art, _, _), (ActualX, ActualY), (X, Y), Result) :- 
+art_condition((art, _, _), (ActualX, ActualY), (X, Y), Result) :- 
     not(bfs((X, Y), (ActualX, ActualY), _, -1)), !,
     Result = 'No se encontro camino posible'.  
 
-mov_fail_condition((ladybug, _, _), (ActualX, ActualY), (X, Y), Result) :- 
+ladybug_condition((ladybug, _, _), (ActualX, ActualY), (X, Y), Result) :- 
     not(hive_bfs((X, Y), (ActualX, ActualY), _, 4)), !,
     Result = 'No hay camino tres pasos mas alante'.
 
-mov_fail_condition((mosquito, Index, Player), (ActualX, ActualY), (X, Y), Result) :- 
+mosquito_stoper_condition((mosquito, Index, Player), (ActualX, ActualY), (X, Y), Result) :- 
     insect_play((mosquito, Player, Index), ActualX, ActualY),
     findall(Insect, (insect_play((Insect, _, _), AdjX, AdjY), adj_post(X, Y, AdjX, AdjY)), InsectList),
     not(member(InsectInList, InsectList), InsectInList \= mosquito), !,
     Result = 'El mosquito solo tiene al lado a otro mosquito'. 
 
-mov_fail_condition((mosquito, _, Player), (ActualX, ActualY), (X, Y), Result) :- 
+mosquito_condition((mosquito, _, Player), (ActualX, ActualY), (X, Y), Result) :- 
     findall(Insect, (insect_play((Insect, _, _), AdjX, AdjY), adj_post(X, Y, AdjX, AdjY)), InsectList),
     not(
         member(InsectInList, InsectList), 
         InsectInList \= mosquito, 
         not(mov_fail_condition((InsectInList, _, Player), (ActualX, ActualY), (X, Y), _))
-    ), !, Result = 'Ninguno de los adyacnetes puede realizar ese movimiento'. 
+    ), !, Result = 'Ninguno de los adyacentes puede realizar ese movimiento'. 
 
 
 
@@ -109,7 +121,7 @@ mov((Insect, Player, Index), _, Result) :-
 
 mov((Insect, Player, Index), (X, Y), Result) :- 
     insect_play((Insect, Player, Index), ActualX, ActualY), !,
-    mov_fail_condition((Insect, Index, Player), (ActualX, ActualY), (X, Y), Result). 
+    mov_fail_condition((Insect, Index, Player), (ActualX, ActualY), (X, Y), Result), !. 
 
 mov((Insect, Player, Index), (X, Y), Result) :-
     insect_play((Insect, Player, Index), ActualX, ActualY), !,

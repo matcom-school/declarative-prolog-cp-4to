@@ -15,6 +15,15 @@
 :- use_module(helpers).
 :- use_module(list_helpers).
 
+
+test_play() :- 
+    set_insect((queen_bee, 1), 0, 0, _), turn_finish(),
+    set_insect((queen_bee, 1), 1, 0, _), turn_finish(),
+    set_insect((art, 1), 0, 1, _), turn_finish(),
+    set_insect((art, 1), 0, 2, _), turn_finish(),
+    set_insect((art, 2), 3, 0, _), turn_finish(),
+    set_insect((art, 2), 2, 0, _), turn_finish(), !.
+
 mov_condition(Option) :- 
     is_turn_of(Player), 
     insect_play((queen_bee, Player, 1),_,_), !, 
@@ -34,20 +43,27 @@ set_condition(Option) :-
 
 insect_available_to_set(List) :- 
     is_turn_of(Player),
+    insect_available_to_set_by_player(Player, List).
+
+insect_available_to_set_by_player(Player, List) :- 
     list_all_insects InsetList of Player,
     cards CardList of_player Player,
     diff(InsetList, CardList, List).
 
 insect_available_to_mov(List) :- 
     is_turn_of(Player),
+    insect_available_to_mov_by_player(Player, List).
+
+insect_available_to_mov_by_player(Player, List) :- 
     list_all_insects InsetList of Player,
     findall((Insect, Player, Index), 
         (dont_mov((Insect, Player, Index), _)), 
         StoperList),
     diff(StoperList, InsetList, List).
 
+available_to_post(List) :- get_table(Table), length(Table, 0), !, List = [(0,0)].
 available_to_post(List) :- 
-    get_table(Table), 
+    get_table(Table), length(Table, Len), Len > 0, !,
     findall((X, Y), member((_, X, Y), Table), PosInTable),
     findall((X1, Y1), (member((X2, Y2), PosInTable), adj_post(X2, Y2, X1, Y1), not(member((X1, Y1), PosInTable))), FreePost),
     append(PosInTable, FreePost, List).
@@ -73,11 +89,17 @@ simulate_play(Deep, Result) :-
 
 simulate_steep(Deep, Result) :- 
     aux_simalate(Deep, 0, Density, MovList), 
-    member(n(Action, Insect, Index, X, Y, Density), MovList), !,
-    execute_action(Action, Insect, Index, X, Y, Result).
+    (   
+        (   
+            length(MovList, Len), Len > 0 , !, 
+            member(n(Action, Insect, Index, X, Y, Density), MovList), !, 
+            execute_action(Action, Insect, Index, X, Y, Result)
+        );
+        (length(MovList, 0), !, Result = 'No se encontro action')
+    ).
 
-execute_action(1, Insect, Index, X, Y, Result) :- set_insect((Insect, Index), X, Y, Result).
-execute_action(2, Insect, Index, X, Y, Result) :- mov_insect((Insect, Index), X, Y, Result).
+execute_action(Action, Insect, Index, X, Y, Result) :- Action = 1, !, set_insect((Insect, Index), X, Y, Result).
+execute_action(Action, Insect, Index, X, Y, Result) :- Action = 2, !, mov_insect((Insect, Index), X, Y, Result).
 
 aux_simalate(0, _, Density, _) :- 
     is_turn_of(Player), other_player(Player, Other), 
@@ -85,27 +107,33 @@ aux_simalate(0, _, Density, _) :-
     Density is ResultPlayer/ResultOther.
 
 aux_simalate(Deep, Steep, Result, MovList) :-
-    Mod is Steep mod 2, Mod = 0, !,
+    Mod is Steep mod 2, Mod = 0, !, Deep > 0, !,
     is_turn_of(Player),
     findall(n(Action, Insect, Index, X, Y, Density), ( 
         set_simulation(Insect, Player, Index, X, Y, Deep, Steep, Density), !, Action = 1
     ), MovList), 
-    map(get_density, MovList, DensityList), min_list(DensityList, Result).
+    (
+        (map(get_density, MovList, DensityList), min_list(DensityList, Result));
+        (length(MovList, 0), !, Result = -1) 
+    ).
 
 aux_simalate(Deep, Steep, Result, MovList) :-
-    Mod is Steep mod 2, Mod = 1, !,
+    not((Mod is Steep mod 2, Mod = 0)), !, Deep > 0, !,
     is_turn_of(Player), other_player(Player, Other),
     findall(n(Action, Insect, Index, X, Y, Density), ( 
         set_simulation(Insect, Other, Index, X, Y, Deep, Steep, Density), !, Action = 1
     ), MovList), 
-    map(get_density, MovList, DensityList), max_list(DensityList, Result).
+    (
+        (map(get_density, MovList, DensityList), max_list(DensityList, Result));
+        (length(MovList, 0), !, Result = 1000) 
+    ).
 
 set_simulation(Insect, Player, Index, X, Y, Deep, Steep, Density) :- 
     NewDeep is Deep - 1, NewDeep > -1, !,
     NewSteep is Steep + 1,
-    insect_available_to_set(List), member((Insect, Player, Index), List),
+    insect_available_to_set_by_player(Player, List), member((Insect, Player, Index), List),
     available_to_post(PostList), member((X, Y), PostList),
-    not(set_fail_condition(Insect, Player, Index, X, Y, _)), !,
+    not(set_fail_condition(Insect, Index, Player, X, Y, _)), !,
     save((Insect, Player, Index), X, Y), 
     aux_simalate(NewDeep, NewSteep, Density, _), 
     remove((Insect, Player, Index), X, Y).  
@@ -113,9 +141,9 @@ set_simulation(Insect, Player, Index, X, Y, Deep, Steep, Density) :-
 mov_simulation(Insect, Player, Index, X, Y, Deep, Steep, Density) :- 
     NewDeep is Deep - 1, NewDeep > -1, !,
     NewSteep is Steep + 1,
-    insect_available_to_set(List), member((Insect, Player, Index), List),
+    insect_available_to_mov_by_player(Player, List), member((Insect, Player, Index), List),
     available_to_post(PostList), member((X, Y), PostList),
-    insect_play((Insect, Player, Index), ActualX, ActualY),
+    insect_play((Insect, Player, Index), ActualX, ActualY), 
     not(mov_fail_condition((Insect, Player, Index), (ActualX, ActualY), (X, Y), _)), !,
     mov_insect_save((Insect, Player, Index), (ActualX, ActualY), (X,Y)),
     aux_simalate(NewDeep, NewSteep, Density, _), 

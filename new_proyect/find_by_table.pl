@@ -9,7 +9,8 @@
     finish_play/1,
     bfs/4,
     hive_bfs/4,
-    get_all_insects/1
+    get_all_insects/1,
+    compute_queen_warning/2
 ]).
 
 :- use_module(database).
@@ -130,30 +131,30 @@ finish_condition(Player) :-
     insect_play((queen_bee, Player, 1), X, Y), !,
     other_player(Player, Other),
     findall((AdjInsectX, AdjInsectY), 
-        ( insect_play(_, Other, _), AdjInsectX, AdjInsectY), 
-          adj_post(X, Y, AdjInsectX, AdjInsectY), 
+        ( insect_play((_, Other, _), AdjInsectX, AdjInsectY), 
+          adj_post(X, Y, AdjInsectX, AdjInsectY) ), 
         InsectPostList),
     findall((AdjX, AdjY),  adj_post(X, Y, AdjX, AdjY), AdjList),
     append(AdjList, _, InsectPostList), !.
 
 compute_queen_warning(Player, Result) :- not(insect_play((queen_bee, Player, 1), _, _)), Result = 0.1.
 compute_queen_warning(Player, Result) :- 
-    insect_play((queen_bee, Player, 1),_,_), !,
-    finish_condition(Player), !, Result = 100.
-
-compute_queen_warning(Player, Result) :- 
-    other_player(Player, Other),
-    insect_play((queen_bee, Player, 1),X,Y),
-    findall((AdjX, AdjY), 
-        (   insect_play((_, Other, _), AdjX, AdjY), 
-            adj_post(X, Y, AdjX, AdjY)
-        ), FistDeepList),
-    findall((Adj2X, Adj2Y), 
-        (   insect_play((_, Other, _), Adj2X, Adj2Y), 
-            adj_post(X, Y, TempX, TempY), 
-            adj_post(TempX, TempY, Adj2X, Adj2Y),
-            X\=Adj2X, Y \= Adj2Y, 
-            not(member(Adj2X, Adj2Y), FistDeepList)
-        ), SecondDeepList),
-    length(FistDeepList, Len1), length(SecondDeepList, Len2),
-    Result is Len1 + Len2.
+    insect_play((queen_bee, Player, 1),X,Y), !,
+    (
+        (   finish_condition(Player), !, Result = 100 );
+        (   other_player(Player, Other),
+            findall((AdjX, AdjY), 
+                (   insect_play((_, Other, _), AdjX, AdjY), 
+                    adj_post(X, Y, AdjX, AdjY)
+                ), FistDeepList),
+            findall((Adj2X, Adj2Y), 
+                (   insect_play((_, Other, _), Adj2X, Adj2Y), 
+                    adj_post(X, Y, TempX, TempY), 
+                    adj_post(TempX, TempY, Adj2X, Adj2Y),
+                    X\=Adj2X, Y \= Adj2Y, 
+                    not(member((Adj2X, Adj2Y), FistDeepList))
+                ), SecondDeepList),
+            length(FistDeepList, Len1), length(SecondDeepList, Len2),
+            Result is Len1 + Len2 + 1
+        )
+    ).
