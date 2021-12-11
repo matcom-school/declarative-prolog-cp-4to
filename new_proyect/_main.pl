@@ -94,7 +94,7 @@ simulate_play(Deep, Result) :-
     simulate_play(Deep, Result), !.
 
 simulate_steep(Deep, Result) :- 
-    findall(_,(cache(X), retract(cache(X))),_).
+    findall(_,(cache(Item), retract(cache(Item))),_),
     aux_simalate(Deep, 0, Density, MovList), 
     (   
         (   
@@ -117,8 +117,8 @@ aux_simalate(Deep, Steep, Result, MovList) :-
     Mod is Steep mod 2, Mod = 0, !, Deep > 0, !,
     is_turn_of(Player),
     set_simulation(Player, Deep, Steep, SetListOptions), !,
-    mov_simulation(Player, Deep, Steep, MovListOptions), !,
-    append(MovListOptions, SetListOptions, MovList), writeln(MovList),
+    % mov_simulation(Player, Deep, Steep, MovListOptions), !,
+    append([], SetListOptions, MovList), writeln(MovList),
     (
         (map(get_density, MovList, DensityList), min_list(DensityList, Result));
         (length(MovList, 0), !, Result = -1) 
@@ -128,28 +128,37 @@ aux_simalate(Deep, Steep, Result, MovList) :-
     not((Mod is Steep mod 2, Mod = 0)), !, Deep > 0, !,
     is_turn_of(Player), other_player(Player, Other),
     set_simulation(Other, Deep, Steep, SetListOptions), !,
-    mov_simulation(Other, Deep, Steep, MovListOptions), !,
-    append(MovListOptions, SetListOptions, MovList), writeln(MovList),
+    % mov_simulation(Other, Deep, Steep, MovListOptions), !,
+    append([], SetListOptions, MovList), writeln(MovList),
     (
         (map(get_density, MovList, DensityList), max_list(DensityList, Result));
         (length(MovList, 0), !, Result = 1000) 
     ).
 
-
 set_simulation(Player, Deep, Steep, ListOptions) :-
     NewDeep is Deep - 1,
     NewSteep is Steep + 1,
+    get_table(Table), map(exclude_index, Table, NewTable), sort(NewTable, CachingTable),
     findall(n(1, Insect, Index, X, Y, Density), 
         (
             insect_available_to_set_by_player(Player, List), member((Insect, Player, Index), List),
             available_to_post(PostList), member((X, Y), PostList),
             not(set_fail_condition(Insect, Index, Player, X, Y, _)),
-            save((Insect, Player, Index), X, Y), 
-            aux_simalate(NewDeep, NewSteep, Density, _),
-            remove((Insect, Player, Index), X, Y)
+            % save((Insect, Player, Index), X, Y), 
+            % aux_simalate(NewDeep, NewSteep, Density, _),
+            % remove((Insect, Player, Index), X, Y)
+            aux_set_simulation(NewDeep, NewSteep, CachingTable, Insect, Index, X, Y, Density)
         ),
         ListOptions
     ).
+
+aux_set_simulation(_, _, CachingTable, Insect, Index, X, Y, Density) :- cache((1, CachingTable, Insect, Index, X, Y, Density)), !.
+aux_set_simulation(NewDeep, NewSteep, CachingTable, Insect, Index, X, Y, Density) :- 
+    not(cache((1, CachingTable, Insect, Index, X, Y, _))), !,
+    save((Insect, Player, Index), X, Y), 
+    aux_simalate(NewDeep, NewSteep, Density, _),
+    assert(cache((1, CachingTable, Insect, Index, X, Y, Density))),
+    remove((Insect, Player, Index), X, Y).
 
 mov_simulation(Player, Deep, Steep, ListOptions) :-
     NewDeep is Deep - 1,

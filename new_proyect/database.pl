@@ -9,7 +9,8 @@
     remove/3,
     is_turn_of/1,
     next_player/1,
-    other_player/2
+    other_player/2,
+    cache/1
 ]).
 
 :- dynamic insect_play/3.
