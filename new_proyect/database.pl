@@ -10,15 +10,18 @@
     is_turn_of/1,
     next_player/1,
     other_player/2,
-    cache/1
+    cache/4,
+    last/3
 ]).
 
 :- dynamic insect_play/3.
 :- dynamic player_turn/1.
 :- dynamic dont_mov/2.
-:- dynamic cache/1.
+:- dynamic cache/4.
+:- dynamic last/3.
 
-save(Insect, X, Y) :- asserta(insect_play(Insect, X, Y )).
+save(Insect, X, Y) :- asserta(insect_play(Insect, X, Y )), 
+    findall(_, retract(last(_,_,_)), _), assert(last(Insect, X, Y)).
 
 remove(Insect, X, Y) :- 
     insect_play(Insect, X, Y), !, 
@@ -44,7 +47,8 @@ cards List of_player X :- X is_player,
         (art, X, 1), (art, X, 2), (art, X, 3), 
         (grasshopper, X, 1), (grasshopper, X, 2), (grasshopper, X, 3),
         (beetle, X, 1), (beetle, X, 2),
-        (spider, X, 1), (spider, X, 2)
+        (spider, X, 1), (spider, X, 2),
+        (ladybug, X, 1), (mosquito, X, 1), (pill_bug, X, 1)
     ].
 
 
@@ -54,5 +58,11 @@ is_turn_of(Player) :- player_turn(Player).
 other_player(white, black).
 other_player(black, white).
 
-next_player(Player) :- Player = white, !, retract(player_turn(white)), asserta(player_turn(black)). 
-next_player(Player) :- Player = black, !, retract(player_turn(black)), asserta(player_turn(white)). 
+next_player(Player) :- 
+    Player = white, !, 
+    retract(player_turn(white)), asserta(player_turn(black)),
+    findall(_,(dont_mov(X, white), retract(dont_mov(X, white))),_). 
+next_player(Player) :- 
+    Player = black, !, 
+    retract(player_turn(black)), asserta(player_turn(white)),
+    findall(_,(dont_mov(X, black), retract(dont_mov(X, black))),_). 

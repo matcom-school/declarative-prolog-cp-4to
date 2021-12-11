@@ -36,7 +36,8 @@ connected_condition( _, _, _, X, Y, Result) :-
     adj_list(X, Y, ListAdjCard), length(ListAdjCard, Length2), Length2 = 0, !, 
     Result = 'Posicion Desconectada'.
 
-queen_condition(_, _, Player, _, _, Result) :- 
+queen_condition(Insect, _, Player, _, _, Result) :-
+    Insect \= queen_bee, !,
     list_all_insects List of Player, length(List, Length), Length > 3, !,
     not(member((queen_bee, Player, 1), List)), 
     Result = 'Falta por colocar la reina'. 

@@ -1,6 +1,11 @@
 from pyswip import Query, Prolog, Variable
 from pyswip.easy import Atom, Functor
 import re
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("ia_deep", help="search deep of min-max algorithm", type=int)
+args = parser.parse_args()
 
 prolog = Prolog()
 prolog.consult('_main.pl')
@@ -10,6 +15,13 @@ top2 = [ ' ', '/', ' ', ' ', ' ', '\\', ' ']
 top3 = [ '/', ' ', ' ', ' ', ' ', ' ', '\\']
 top4 = [ '\\', ' ', ' ', ' ', ' ', ' ', '/']
 top5 = [ ' ', '\\', '_', '_', '_', '/', ' ']
+
+def next_turn(): 
+  print("Simulate")
+  print()
+  list(prolog.query('turn_finish()'))
+  list(prolog.query('simulate_steep('+ str(args.ia_deep) +',Result)'))
+  list(prolog.query('turn_finish()'))
 
 def insect_tuple(tuplee: Functor):
   atom = tuplee.args[0]
@@ -27,7 +39,7 @@ def print_table(table, xi, yi, x_deep, y_deep):
     y.append( int(item.args[1].args[1]) )
     _dict[(x[-1], y[-1])] = (str(item.args[0].args[0]) , str(item.args[0].args[1].args[0]))
 
-  print(_dict)
+  # print(_dict)
   def index(e, j, s = 0):
     result = [' ', ' ', ':', ' ', ' ']
     i = str( xi -1 + 2*j + s)
@@ -123,7 +135,7 @@ def set_action(option):
     set_action(1)
 
   print('Set result:', result[0]['Result'])
-  list(prolog.query('turn_finish()'))
+  next_turn()
 
 def mov_action(option): 
   if option != 2: return 
@@ -154,8 +166,54 @@ def mov_action(option):
     mov_action(2)
 
   print('Set result:', result[0]['Result'])
-  list(prolog.query('turn_finish()'))
+  next_turn()
 
+def pill_bug_effect(option):
+    if option != 3: return 
+    print('Write your new mov. (Example: mov insect [1:1] to 2:3)')
+
+    action = input()
+    select = re.search(r'\[\s*(-\d+\s*|\d+\s*):(\s*-\d+|\s*\d+)\s*\]', action)
+    place = re.search(r'(-\d+\s*|\d+\s*):(\s*-\d+|\s*\d+)', action)
+    if select is None or place is None: return  mov_action(2)
+
+    index = select.group()[1:-1]
+    a_pos = index.split(':')
+    pos = place.group().split(':')
+    result =list(prolog.query('pill_bug_effect_insect((' + str(int(a_pos[0])) + 
+                 ',' + str(int(a_pos[1])) + 
+                 '),(' + str(int(pos[0])) +
+                 ',' + str(int(pos[1])) + '), Result)' ))
+
+    _result = result[0]['Result']
+    if not "finish" in str(_result): 
+      print("Error:", _result)
+      pill_bug_effect(3)
+
+    print('Set result:', result[0]['Result'])
+    next_turn()
+
+def simulate_play():
+  try: 
+    while True:
+      print("Simulated ....")
+      sim = list(prolog.query('simulate_steep('+ str(args.ia_deep) +',Result)'))
+      print(sim[0]['Result'])
+      if not str(sim[0]['Result']) == 'Not finish':  break
+      list(prolog.query('turn_finish()'))
+      table = list(prolog.query('get_table(Table)'))
+      print_table(table[0]['Table'], -2, -2, 10, 10)
+  except KeyboardInterrupt: 
+    pass
+  
+  xi, yi, x_deep, y_deep = -2, -2, 10, 10
+  while True: 
+    table = list(prolog.query('get_table(Table)'))
+    print_table(table[0]['Table'], xi, yi, x_deep, y_deep)
+
+    print("Write any think of press Ctrl+C")
+    input()
+    xi, yi, x_deep, y_deep = xi - 0.5, yi - 0.5, x_deep + 1, y_deep + 1 
 
 xi, yi, x_deep, y_deep = 0, 0, 3, 3
 while True:
@@ -164,14 +222,18 @@ while True:
 
   set_cond = list(prolog.query('set_condition(X)'))
   mov_cond = list(prolog.query('mov_condition(X)'))
+  pill_cond = list(prolog.query('pill_bug_effect_condition(X)'))
   
   if set_cond or mov_cond: print('Select option for your next steep in play:')
   else: 
-    list(prolog.query('turn_finish()'))
+    next_turn()
     continue 
   print('0- Zoom Table')
   if len(set_cond) > 0: print(set_cond[0]['X'])
   if len(mov_cond) > 0: print(mov_cond[0]['X'])
+  if len(pill_cond) > 0: print(pill_cond[0]['X'])
+  print('4- Simulate PLay')
+
 
   try:
     select_option = int(input())
@@ -180,7 +242,12 @@ while True:
 
   if select_option == 0: 
     xi, yi, x_deep, y_deep = xi - 0.5, yi - 0.5, x_deep + 1, y_deep + 1 
-    
+  
+  if select_option == 4:
+    simulate_play()
+    break
+
   set_action(select_option)
   mov_action(select_option)
+  pill_bug_effect(select_option)
   

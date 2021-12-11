@@ -4,7 +4,8 @@
     mov/4,
     mov_fail_condition/4,
     retract_mov_insect_save/3,
-    mov_insect_save/3
+    mov_insect_save/3,
+    connected_condition/4
 ]).
 
 % :- discontiguous movInsect:mov/3.
@@ -50,10 +51,10 @@ mov_fail_condition((Insect, Index, Player), (AX, AY), (X, Y), Result) :-
     connected_condition((Insect, Index, Player), (AX, AY), (X, Y), Result);
     grasshopper_lineal_condition((Insect, Index, Player), (AX, AY), (X, Y), Result);
     grasshopper_void_space_condition((Insect, Index, Player), (AX, AY), (X, Y), Result);
-    spider_condition((Insect, Index, Player), (AX, AY), (X, Y), Result), !.
-    % ladybug_condition((Insect, Index, Player), (AX, AY), (X, Y), Result);
-    % mosquito_stoper_condition((Insect, Index, Player), (AX, AY), (X, Y), Result);
-    % mosquito_condition((Insect, Index, Player), (AX, AY), (X, Y), Result), !.
+    spider_condition((Insect, Index, Player), (AX, AY), (X, Y), Result);
+    ladybug_condition((Insect, Index, Player), (AX, AY), (X, Y), Result);
+    mosquito_stoper_condition((Insect, Index, Player), (AX, AY), (X, Y), Result);
+    mosquito_condition((Insect, Index, Player), (AX, AY), (X, Y), Result), !.
 
 queen_condition((_, _, Player), _, _, Result) :-  
     list_all_insects List of Player,
@@ -121,19 +122,18 @@ ladybug_condition((ladybug, _, _), (ActualX, ActualY), (X, Y), Result) :-
     length(AdjList, 0), !,
     Result = 'No se encontro camino sobre el Hive'.
 
-mosquito_stoper_condition((mosquito, Index, Player), (ActualX, ActualY), _, Result) :- 
-    insect_play((mosquito, Player, Index), ActualX, ActualY),
+mosquito_stoper_condition((mosquito, _, _), (ActualX, ActualY), _, Result) :- 
     findall(Insect, (adj_post(ActualX, ActualY, AdjX, AdjY), insect_play((Insect, _, _), AdjX, AdjY)), InsectList),
-    not(member(InsectInList, InsectList), InsectInList \= mosquito), !,
+    not((member(InsectInList, InsectList), InsectInList \= mosquito)), !,
     Result = 'El mosquito solo tiene al lado a otro mosquito'. 
 
 mosquito_condition((mosquito, _, Player), (ActualX, ActualY), (X, Y), Result) :- 
     findall(Insect, (adj_post(ActualX, ActualY, AdjX, AdjY), insect_play((Insect, _, _), AdjX, AdjY)), InsectList),
-    not(
+    not((
         member(InsectInList, InsectList), 
         InsectInList \= mosquito, 
         not(mov_fail_condition((InsectInList, _, Player), (ActualX, ActualY), (X, Y), _))
-    ), !, Result = 'Ninguno de los adyacentes puede realizar ese movimiento'. 
+    )), !, Result = 'Ninguno de los adyacentes puede realizar ese movimiento'. 
 
 
 mov((Insect, Player, Index), (ActualX, ActualY), (X, Y), Result) :- 
