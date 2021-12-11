@@ -15,6 +15,7 @@
 :- dynamic insect_play/3.
 :- dynamic player_turn/1.
 :- dynamic dont_mov/2.
+:- dynamic cache/1.
 
 save(Insect, X, Y) :- asserta(insect_play(Insect, X, Y )).
 

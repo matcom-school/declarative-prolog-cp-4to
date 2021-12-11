@@ -7,7 +7,9 @@
     diff/3,
     concat/3,
     get_circular_value/2,
-    is_connected_component/1
+    is_connected_component/1,
+    bfs/3,
+    set_list/2
 ]).
 
 :- use_module(find_by_table).
@@ -40,19 +42,35 @@ diff([X|RList], List, ListResult) :- remove(X, List, RemoveList), diff(RList, Re
 
 get_circular_value(Index, Value) :- TrueIndex is Index mod 6, TrueIndex is_index_of Value in [0,1,2,3,4,5]. 
 
+set_list([], []).
+set_list([X|List], Set) :- member(X, List), !, set_list(List, Set). 
+set_list([X|List], [X|Set]) :- not(member(X, List)), !, set_list(List, Set). 
 
 is_connected_component([X|List]) :-
     aux_connected_component(List, [X]).
 
 aux_connected_component(List, []) :- length(List, Len), Len = 0.
-aux_connected_component(List, [n(SInsect, SPlayer, SIndex, X, Y)| Queen]) :-
+aux_connected_component(List, [n(SInsect, SPlayer, SIndex, X, Y)| Queue]) :-
     findall(n(Insect, Player, Index, AX, AY), (
         member(n(Insect, Player, Index, AX, AY), List), 
-        adj_post(X, Y, AX, AY), !,
-        not(member(n(Insect, Player, Index, AX, AY), Queen)) 
+        adj_post(X, Y, AX, AY),
+        not(member(n(Insect, Player, Index, AX, AY), Queue)) 
     ), ListPushedToQueue),
-    append(Queen, ListPushedToQueue, NewQueue),
+    append(Queue, ListPushedToQueue, NewQueue),
     diff([n(SInsect, SPlayer, SIndex, X, Y)], List, NewList),
     aux_connected_component(NewList, NewQueue).
 
+bfs([S| List], (X, Y), Deep) :- 
+    aux_bfs(List, [(S, [])], n(X,Y), Deep).
 
+aux_bfs(_, [ (Objective, _) |_], Objective, _).
+aux_bfs(_, [ (_, SubPath) |_], _, Deep) :- length(SubPath, Deep), !, fail.
+aux_bfs(List, [ (n(X, Y), SubPath) | Queue ], Objective, Deep) :- 
+    findall( (n(AX, AY), [n(X, Y)| SubPath]) , (
+        member(n(AX, AY), List), adj_post(X, Y, AX, AY),
+        not(member((n(AX, AY), _), Queue)) 
+    ), ListPushedToQueue),
+    append(Queue, ListPushedToQueue, NewQueue),
+    diff([n(X, Y)], List, NewList),
+    % writeln(NewQueue), writeln(Objective),
+    aux_bfs(NewList, NewQueue, Objective, Deep), !.

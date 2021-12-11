@@ -115,6 +115,13 @@ def set_action(option):
                ',' + str(insect[index][1]) + 
                '),' + str(int(pos[0])) +
                ',' + str(int(pos[1])) + ', Result)' ))
+
+    
+  _result = result[0]['Result']
+  if not "finish" in str(_result): 
+    print("Error:", _result)
+    set_action(1)
+
   print('Set result:', result[0]['Result'])
   list(prolog.query('turn_finish()'))
 
@@ -140,6 +147,12 @@ def mov_action(option):
                ',' + str(insect[index][1]) + 
                '),' + str(int(pos[0])) +
                ',' + str(int(pos[1])) + ', Result)' ))
+  
+  _result = result[0]['Result']
+  if not "finish" in str(_result): 
+    print("Error:", _result)
+    mov_action(2)
+
   print('Set result:', result[0]['Result'])
   list(prolog.query('turn_finish()'))
 
@@ -166,7 +179,8 @@ while True:
   except ValueError: continue
 
   if select_option == 0: 
-    xi, yi, x_deep, y_deep = xi - 1, yi - 1, x_deep + 1, y_deep + 1 
+    xi, yi, x_deep, y_deep = xi - 0.5, yi - 0.5, x_deep + 1, y_deep + 1 
     
   set_action(select_option)
+  mov_action(select_option)
   
