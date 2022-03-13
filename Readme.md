@@ -3,7 +3,7 @@
 ## Integrantes:
 
 - Daniel Orlando Ortiz Pacheco
-- Aldo Javier Veldesia
+- Aldo Javier Verdesia Delgado
 
 # Objetivo: La Implementación en Prolog del Juego Hive y de una IA del mismo
 
@@ -22,7 +22,8 @@ Para la resolución de esta tarea se utilizó Prolog para describir y controlar 
 
 Como tarea inicial, se investigó como representar computacionalmente el Hive. El Hive es un tablero hexagonal y tan grande como la cantidad de insectos en juego. Finalmente se opto por una representación bidimensional del mismo, donde se define que:
 
-        ⍫ i,j ⍷ N, i,j posiciones del Hive entonces las posiciones (i, j+1), (i+1, j),(i-1, j+1), (i-1, j),(i, j-1), (i+1, j-1) son sus posiciones adyacentes a la posición (i,j).
+        ⍫ i,j ⍷ N, i,j posiciones del Hive entonces las posiciones
+        (i, j+1), (i+1, j),(i-1, j+1), (i-1, j),(i, j-1), (i+1, j-1) son sus posiciones adyacentes a la posición (i,j).
 
 Siguiendo esa idea el Hive fue implementado usando la meta programación de Prolog, gracias a los métodos `assert`, `retract` y definiendo el predicado dinámico `insect_play/3`.
 

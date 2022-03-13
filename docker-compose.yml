@@ -1,0 +1,13 @@
+version: '3.1'
+
+services:
+  prolog:
+    image: swipl:latest
+    container_name: prolog
+    command: bin/bash
+    volumes:
+      - ~/src/school/declarative/prolog:/home
+
+volumes:
+  prolog:
+    driver: local  
